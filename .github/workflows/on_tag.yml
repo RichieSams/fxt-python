@@ -1,0 +1,12 @@
+name: Release On Tag
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    uses: ./.github/workflows/release.yaml
+    with:
+      create-tag: false

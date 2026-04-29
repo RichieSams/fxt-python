@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      create-tag:
+        description: If true, will create a git tag manually before calling uv build
+        required: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.2"
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install all dependencies
+        run: uv sync --all-extras
+
+      - name: Run tests
+        run: uv run pytest
+
+      - name: Setup SVU
+        id: svu
+        uses: obfu5c8/action-svu@v1.0.0
+        with:
+          svu-version: 2.2.0
+
+      - name: Set the git tag
+        if: ${{ inputs.create-tag }}
+        run: git tag ${{ steps.svu.outputs.version }}
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always
+
+      - name: Generate changelog
+        id: git-cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --latest --strip all
+
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.svu.outputs.version }}
+          name: Release ${{ steps.svu.outputs.version }}
+          body: ${{ steps.git-cliff.outputs.content }}
+          artifacts: dist/symtool-*-py3-none-any.whl

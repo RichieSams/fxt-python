@@ -1,0 +1,26 @@
+name: Cut New Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify running on main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "ERROR: This workflow must be run on the main branch"
+          echo "Current ref: ${{ github.ref }}"
+          exit 1
+      - name: Confirmed running on main
+        run: echo "✓ Running on main branch"
+
+  release:
+    needs: validate-branch
+    uses: ./.github/workflows/release.yaml
+    with:
+      create-tag: true

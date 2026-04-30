@@ -21,6 +21,6 @@ jobs:
 
   release:
     needs: validate-branch
-    uses: ./.github/workflows/release.yaml
+    uses: ./.github/workflows/release.yml
     with:
       create-tag: true

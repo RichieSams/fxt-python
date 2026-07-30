@@ -7,21 +7,21 @@ from fxt.models import (
     KernelObjectRecord,
     Thread,
 )
-from fxt.reader import ParseRecords
-from fxt.transform import TransformRecordsToSpans
+from fxt.reader import parse_records
+from fxt.transform import transform_records_to_spans
 
 
 def test_parse_records_on_fixture_trace() -> None:
     trace_file = Path(__file__).resolve().parent.parent / "test_data" / "trace.fxt"
     with trace_file.open("rb") as fxt_file:
-        records_by_provider = ParseRecords(fxt_file)
+        records_by_provider = parse_records(fxt_file)
 
     assert records_by_provider
     assert any(provider_state.records for provider_state in records_by_provider.values())
 
     for provider_state in records_by_provider.values():
         # Ensure transform can process each provider stream end-to-end.
-        TransformRecordsToSpans(provider_state.records)
+        transform_records_to_spans(provider_state.records)
 
 
 def test_transform_records_to_spans_nesting_and_close() -> None:
@@ -52,7 +52,7 @@ def test_transform_records_to_spans_nesting_and_close() -> None:
         ),
     ]
 
-    spans_by_process = TransformRecordsToSpans(records)
+    spans_by_process = transform_records_to_spans(records)
 
     assert list(spans_by_process.keys()) == [100]
     process = spans_by_process[100]

@@ -27,7 +27,7 @@ class _TransformThreadState:
     spans: list[Span] = field(default_factory=list)
 
 
-def TransformRecordsToSpans(records: Sequence[Record]) -> SpansByProcess:
+def transform_records_to_spans(records: Sequence[Record]) -> SpansByProcess:
     """Convert parsed duration records into nested spans grouped by process/thread."""
     process_names: dict[int, str] = {}
     thread_names: dict[int, str] = {}

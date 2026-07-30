@@ -456,7 +456,7 @@ class _ReadState:
         raise AssertionError("unreachable")
 
 
-def ParseRecords(input: BinaryIO) -> RecordStateByProvider:
+def parse_records(input: BinaryIO) -> RecordStateByProvider:
     """Parse an FXT stream into records grouped by provider."""
     records_by_provider: RecordStateByProvider = {}
     state_by_provider: dict[int, _ReadState] = {}

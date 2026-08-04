@@ -50,6 +50,13 @@ class FxtParseError(ValueError):
     pass
 
 
+@dataclass(slots=True)
+class ParseRecordsResult:
+    records_by_provider: RecordStateByProvider
+    had_unexpected_eof: bool
+    eof_error: FxtParseError | None = None
+
+
 class _Readable(Protocol):
     def read(self, size: int = -1, /) -> bytes: ...
 
@@ -456,8 +463,13 @@ class _ReadState:
         raise AssertionError("unreachable")
 
 
-def parse_records(input: BinaryIO) -> RecordStateByProvider:
-    """Parse an FXT stream into records grouped by provider."""
+def parse_records(input: BinaryIO) -> ParseRecordsResult:
+    """Parse an FXT stream and report whether parsing ended with unexpected EOF.
+
+    This always returns records parsed so far. If an unexpected EOF occurs while
+    reading a record body, ``had_unexpected_eof`` is ``True`` and ``eof_error``
+    contains the corresponding parse error.
+    """
     records_by_provider: RecordStateByProvider = {}
     state_by_provider: dict[int, _ReadState] = {}
 
@@ -471,7 +483,7 @@ def parse_records(input: BinaryIO) -> RecordStateByProvider:
 
         maybe_header = wrapped_reader.read(8)
         if len(maybe_header) == 0:
-            return records_by_provider
+            return ParseRecordsResult(records_by_provider=records_by_provider, had_unexpected_eof=False)
         if len(maybe_header) != 8:
             raise FxtParseError(f"failed to read record header at offset 0x{wrapped_reader.current_record_offset:x}")
         header = unpack("<Q", maybe_header)[0]
@@ -605,6 +617,11 @@ def parse_records(input: BinaryIO) -> RecordStateByProvider:
                 assert current_provider_state is not None
                 current_provider_state.records.append(record)
         except EOFError as exc:
-            raise FxtParseError(
+            eof_error = FxtParseError(
                 f"unexpected EOF while reading record at offset 0x{wrapped_reader.current_record_offset:x}: {exc}"
-            ) from exc
+            )
+            return ParseRecordsResult(
+                records_by_provider=records_by_provider,
+                had_unexpected_eof=True,
+                eof_error=eof_error,
+            )
